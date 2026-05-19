@@ -5,6 +5,7 @@
 [![npm](https://img.shields.io/npm/v/@aiapicore/react-intelliparser)](https://www.npmjs.com/package/@aiapicore/react-intelliparser)
 [![license](https://img.shields.io/npm/l/@aiapicore/react-intelliparser)](./LICENSE)
 [![types](https://img.shields.io/npm/types/@aiapicore/react-intelliparser)](https://www.npmjs.com/package/@aiapicore/react-intelliparser)
+[![demo](https://img.shields.io/badge/demo-live-blue)](https://react-intelliparser.vercel.app/)
 
 **react-intelliparser** is a React + TypeScript component purpose-built for rendering AI and LLM responses. It automatically detects what kind of content each part of a raw string is — Markdown, JSON, XML, HTML, YAML, CSV, code, Mermaid diagrams, math equations, plain URLs, or plain text — then renders it with the right component. Zero configuration required.
 

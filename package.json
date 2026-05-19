@@ -1,6 +1,6 @@
 {
   "name": "@aiapicore/react-intelliparser",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Smart React component that auto-detects and renders any content type from LLM/AI responses — Markdown, JSON, XML, code, Mermaid, math, and more.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -38,10 +38,10 @@
     "url": "https://github.com/mirmashhouri"
   },
   "license": "MIT",
-  "homepage": "https://github.com/aiapicore/react-intelliparser#readme",
+  "homepage": "https://react-intelliparser.vercel.app/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aiapicore/react-intelliparser"
+    "url": "git+https://github.com/aiapicore/react-intelliparser.git"
   },
   "bugs": {
     "url": "https://github.com/aiapicore/react-intelliparser/issues"
@@ -50,6 +50,7 @@
     "dev": "vite",
     "build": "tsup",
     "build:watch": "tsup --watch",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "lint": "eslint .",
