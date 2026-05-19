@@ -52,13 +52,59 @@ Without react-intelliparser, you write custom parsing logic for every project. W
 
 ---
 
-## Installation
+## Setup
+
+### 1. Install
 
 ```bash
 npm install @aiapicore/react-intelliparser
 ```
 
 > **Peer dependencies:** `react >= 18`, `react-dom >= 18`
+
+---
+
+### 2. Add the stylesheet
+
+Import the CSS once in your app entry file (e.g. `main.tsx` or `index.tsx`). This covers code block styling, Mermaid layout, and table styles.
+
+```tsx
+// main.tsx
+import "katex/dist/katex.min.css";              // required if enableMath: true
+import "@aiapicore/react-intelliparser/styles.css";
+```
+
+If you don't use math, you can skip the KaTeX import.
+
+---
+
+### 3. Use the component
+
+```tsx
+import { IntelliParser } from "@aiapicore/react-intelliparser";
+
+export function ChatMessage({ content }: { content: string }) {
+  return <IntelliParser content={content} />;
+}
+```
+
+That's it — pass any raw string and the library detects and renders every segment automatically.
+
+---
+
+### 4. Enable optional renderers
+
+Mermaid diagrams and math equations are opt-in (they add bundle weight). Enable them via the `options` prop:
+
+```tsx
+<IntelliParser
+  content={content}
+  options={{
+    enableMermaid: true,   // renders ```mermaid blocks as SVG
+    enableMath: true,      // renders ```math / $$...$$ via KaTeX
+  }}
+/>
+```
 
 ---
 
@@ -73,7 +119,7 @@ export function ChatMessage({ content }: { content: string }) {
 }
 ```
 
-That's it. Pass any raw string — the library figures out the rest.
+Pass any raw string — the library figures out the rest.
 
 ---
 
