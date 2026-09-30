@@ -13,15 +13,20 @@ import { MathBlock } from "./MathBlock";
 import { TextBlock } from "./TextBlock";
 import { MarkdownBlock } from "./MarkdownBlock";
 
-export function IntelliParser({ content, options, className, renderers }: IntelliParserProps) {
+export function IntelliParser({
+  content,
+  options,
+  className,
+  renderers,
+}: IntelliParserProps) {
   const mergedOptions = useMemo(
     () => ({ ...defaultOptions, ...options }),
-    [options]
+    [options],
   );
 
   const segments = useMemo(
     () => detectSegments(normalizeContent(content)),
-    [content]
+    [content],
   );
 
   return (
@@ -31,67 +36,135 @@ export function IntelliParser({ content, options, className, renderers }: Intell
 
         if (CustomRenderer) {
           return (
-            <CustomRenderer key={index} segment={segment} options={mergedOptions} />
+            <CustomRenderer
+              key={index}
+              segment={segment}
+              options={mergedOptions}
+            />
           );
         }
 
         switch (segment.type) {
           case "markdown":
-            return (
-              <MarkdownBlock key={index} segment={segment} options={mergedOptions} />
+            return mergedOptions.enableMarkdown ? (
+              <MarkdownBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
+            ) : (
+              <TextBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             );
           case "html":
             return mergedOptions.enableHtml ? (
-              <HtmlBlock key={index} segment={segment} options={mergedOptions} />
+              <HtmlBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             ) : (
-              <TextBlock key={index} segment={segment} options={mergedOptions} />
+              <TextBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             );
           case "xml":
             return mergedOptions.enableXml ? (
               <XmlBlock key={index} segment={segment} options={mergedOptions} />
             ) : (
-              <TextBlock key={index} segment={segment} options={mergedOptions} />
+              <TextBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             );
           case "json":
             return mergedOptions.enableJson ? (
-              <JsonBlock key={index} segment={segment} options={mergedOptions} />
+              <JsonBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             ) : (
-              <TextBlock key={index} segment={segment} options={mergedOptions} />
+              <TextBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             );
           case "yaml":
             return mergedOptions.enableYaml ? (
-              <YamlBlock key={index} segment={segment} options={mergedOptions} />
+              <YamlBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             ) : (
-              <TextBlock key={index} segment={segment} options={mergedOptions} />
+              <TextBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             );
           case "csv":
             return mergedOptions.enableCsv ? (
               <CsvBlock key={index} segment={segment} options={mergedOptions} />
             ) : (
-              <TextBlock key={index} segment={segment} options={mergedOptions} />
+              <TextBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             );
           case "code":
             return (
-              <CodeBlock key={index} segment={segment} options={mergedOptions} />
+              <CodeBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             );
           case "mermaid":
             return (
-              <MermaidBlock key={index} segment={segment} options={mergedOptions} />
+              <MermaidBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             );
           case "math":
             return (
-              <MathBlock key={index} segment={segment} options={mergedOptions} />
+              <MathBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
             );
           case "url":
             return (
               <p key={index} className="intelliparser-url-block">
-                <a href={segment.content} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={segment.content}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {segment.content}
                 </a>
               </p>
             );
           default:
-            return <TextBlock key={index} segment={segment} options={mergedOptions} />;
+            return (
+              <TextBlock
+                key={index}
+                segment={segment}
+                options={mergedOptions}
+              />
+            );
         }
       })}
     </div>

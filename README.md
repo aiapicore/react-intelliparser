@@ -36,7 +36,7 @@ Without react-intelliparser, you write custom parsing logic for every project. W
 
 ## Features
 
-- **Auto-detection** of 11 content types from a single raw string, no hints needed
+- **Auto-detection** of 11 content types, with language hints for code and Mermaid fences
 - **Serialized string support** — handles `\n` / `\"` escaped strings direct from LLM streaming APIs without pre-processing
 - Markdown with full GFM support (tables, task lists, strikethrough, blockquotes)
 - Syntax-highlighted code blocks with a one-click copy button
@@ -221,19 +221,23 @@ const raw = "The result is:\\n\\n\`\`\`json\\n{\"score\": 98}\\n\`\`\`\\n\\nSee 
 
 | Type | How it's detected | Renderer |
 |---|---|---|
-| Markdown | headings, bold, lists, links, blockquotes | `MarkdownBlock` |
+| Markdown | headings, emphasis, lists, links, blockquotes, GFM tables, inline math | `MarkdownBlock` |
 | JSON | `{…}` or `[…]` that parses successfully | `JsonBlock` |
 | XML | well-formed XML that isn't HTML | `XmlBlock` |
-| HTML | `<html>`, `<!DOCTYPE html>`, or common block tags | `HtmlBlock` |
-| YAML | fenced ` ```yaml ` block | `YamlBlock` |
-| CSV | fenced ` ```csv ` block | `CsvBlock` → `<table>` |
+| HTML | `<!DOCTYPE html>` or a known HTML tag, including inline and void elements | `HtmlBlock` |
+| YAML | valid structured YAML beginning with a compact mapping key or `---`, or a `yaml` / `yml` fence | `YamlBlock` |
+| CSV | consistent comma-separated rows with a compact header, or a `csv` fence; quoted commas and multiline cells supported | `CsvBlock` → `<table>` |
 | Code | fenced ` ``` ` with any language hint | `CodeBlock` |
 | Mermaid | fenced ` ```mermaid ` | `MermaidBlock` |
-| Math | fenced ` ```math ` / ` ```latex ` or `$$…$$` | `MathBlock` |
+| Math | `math` / `latex` fence or a standalone `$$…$$` block; `$…$` within prose uses Markdown | `MathBlock` / `MarkdownBlock` |
 | URL | bare `https://` or `http://` link | `UrlBlock` |
 | Plain text | everything else | `TextBlock` |
 
-Detection priority: **Fenced blocks → JSON → XML → HTML → Markdown → YAML → CSV → URL → Text**
+Detection priority: **Fenced blocks / display math → JSON → HTML → XML → YAML → CSV → Markdown → URL → Text**
+
+Fences accept backticks or tildes (three or more), up to three leading spaces, and optional metadata after the language hint. An unclosed fence is treated as a block extending to the end of the response. `md` / `markdown` and `text` / `txt` / `plaintext` hints choose their corresponding renderers.
+
+Unfenced detection is conservative: source code and Mermaid require fences, and YAML lists use Markdown list rendering unless fenced or preceded by a YAML document marker. Prose can share syntax with YAML or CSV; use a language fence when the intended format is ambiguous. Mixed responses should fence structured data; unfenced chunks are classified as a whole.
 
 ---
 
@@ -277,7 +281,7 @@ const segments = detectSegments(normalizeContent(rawString));
 // ]
 ```
 
-`normalizeContent` handles line-ending normalization and automatic deserialization of JSON-escaped strings.
+`normalizeContent` handles line-ending normalization and automatic deserialization of JSON-escaped strings. Valid JSON objects and arrays retain their internal escapes, and serialized strings are decoded once so literal backslashes in code remain intact.
 
 ---
 
@@ -321,6 +325,9 @@ npm test
 
 # Build for publishing (ESM + CJS + types)
 npm run build
+
+# Verify detection and rendering through both built package entry points
+node tests/packageSmoke.mjs
 ```
 
 ---

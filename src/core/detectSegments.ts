@@ -3,33 +3,38 @@ import { isJson } from "./isJson";
 import { isXml } from "./isXml";
 import { isHtml } from "./isHtml";
 import { isMarkdown } from "./isMarkdown";
+import { load } from "js-yaml";
+import { parseCsv } from "./parseCsv";
 
 /** Languages that map fenced block hints to a specific segment type. */
-const TYPED_LANGUAGES: Record<string, ContentSegmentType> = {
-  json: "json",
-  xml: "xml",
-  html: "html",
-  svg: "xml",
-  yaml: "yaml",
-  yml: "yaml",
-  csv: "csv",
-  mermaid: "mermaid",
-  math: "math",
-  latex: "math",
-};
-
-const FENCED_BLOCK_RE = /^```([^\n]*)\n([\s\S]*?)^```/gm;
+const TYPED_LANGUAGES = new Map<string, ContentSegmentType>([
+  ["json", "json"],
+  ["xml", "xml"],
+  ["html", "html"],
+  ["svg", "xml"],
+  ["yaml", "yaml"],
+  ["yml", "yaml"],
+  ["csv", "csv"],
+  ["mermaid", "mermaid"],
+  ["math", "math"],
+  ["latex", "math"],
+  ["markdown", "markdown"],
+  ["md", "markdown"],
+  ["text", "text"],
+  ["txt", "text"],
+  ["plaintext", "text"],
+]);
 
 /**
  * Splits raw (normalized) content into ordered ContentSegment entries.
  *
  * Priority:
- *   1. Fenced code blocks  (``` … ```)
+ *   1. Fenced blocks and display math (``` … ```, ~~~ … ~~~, $$ … $$)
  *   2. JSON
- *   3. XML
- *   4. HTML
+ *   3. HTML
+ *   4. XML
  *   5. YAML
- *   6. CSV / table-like
+ *   6. CSV
  *   7. Markdown
  *   8. URL
  *   9. Plain text
@@ -38,47 +43,71 @@ export function detectSegments(content: string): ContentSegment[] {
   if (!content.trim()) return [];
 
   const segments: ContentSegment[] = [];
-  let lastIndex = 0;
+  const lines = content.replace(/\r\n?/g, "\n").split("\n");
+  let pending: string[] = [];
 
-  // Reset regex state
-  FENCED_BLOCK_RE.lastIndex = 0;
+  function flushText() {
+    const text = pending.join("\n").trim();
+    if (text) classifyText(text, segments);
+    pending = [];
+  }
 
-  let match: RegExpExecArray | null;
+  for (let i = 0; i < lines.length; i++) {
+    const fence = /^( {0,3})(`{3,}|~{3,})([^\n]*)$/.exec(lines[i]);
+    // A backtick fence's info string may not itself contain a backtick.
+    if (fence && !(fence[2][0] === "`" && fence[3].includes("`"))) {
+      flushText();
+      const indent = fence[1].length;
+      const marker = fence[2];
+      const lang = fence[3].trim().split(/\s+/)[0].toLowerCase();
+      const closing = new RegExp(
+        `^ {0,3}${marker[0]}{${marker.length},}[\\t ]*$`,
+      );
+      const indentation = new RegExp(`^ {0,${indent}}`);
+      const body: string[] = [];
+      for (i++; i < lines.length && !closing.test(lines[i]); i++) {
+        // Remove up to the opener's indentation, preserving code indentation.
+        body.push(lines[i].replace(indentation, ""));
+      }
+      segments.push({
+        type: TYPED_LANGUAGES.get(lang) ?? "code",
+        content: body.join("\n").trimEnd(),
+        language: lang || undefined,
+      });
+      continue;
+    }
 
-  while ((match = FENCED_BLOCK_RE.exec(content)) !== null) {
-    const [fullMatch, rawLang, codeContent] = match;
-    const matchStart = match.index;
-
-    // Text before this fenced block
-    if (matchStart > lastIndex) {
-      const before = content.slice(lastIndex, matchStart).trimEnd();
-      if (before.trim()) {
-        classifyText(before.trim(), segments);
+    const singleLineMath = /^ {0,3}\$\$(.+?)\$\$[\t ]*$/.exec(lines[i]);
+    if (singleLineMath) {
+      flushText();
+      segments.push({
+        type: "math",
+        content: singleLineMath[1].trim(),
+        language: "math",
+      });
+      continue;
+    }
+    if (/^ {0,3}\$\$[\t ]*$/.test(lines[i])) {
+      let end = i + 1;
+      while (end < lines.length && !/^ {0,3}\$\$[\t ]*$/.test(lines[end]))
+        end++;
+      if (end < lines.length) {
+        flushText();
+        segments.push({
+          type: "math",
+          content: lines
+            .slice(i + 1, end)
+            .join("\n")
+            .trim(),
+          language: "math",
+        });
+        i = end;
+        continue;
       }
     }
-
-    const lang = rawLang.trim().toLowerCase();
-    const code = codeContent.trimEnd();
-
-    const segType: ContentSegmentType = TYPED_LANGUAGES[lang] ?? "code";
-
-    segments.push({
-      type: segType,
-      content: code,
-      language: lang || undefined,
-    });
-
-    lastIndex = matchStart + fullMatch.length;
+    pending.push(lines[i]);
   }
-
-  // Remaining text after all fenced blocks
-  if (lastIndex < content.length) {
-    const remaining = content.slice(lastIndex).trimEnd();
-    if (remaining.trim()) {
-      classifyText(remaining.trim(), segments);
-    }
-  }
-
+  flushText();
   return segments;
 }
 
@@ -88,18 +117,16 @@ export function detectSegments(content: string): ContentSegment[] {
 function classifyText(text: string, segments: ContentSegment[]): void {
   if (isJson(text)) {
     segments.push({ type: "json", content: text, language: "json" });
-  } else if (isXml(text)) {
-    segments.push({ type: "xml", content: text, language: "xml" });
   } else if (isHtml(text)) {
     segments.push({ type: "html", content: text, language: "html" });
-  } else if (isMarkdown(text)) {
-    // Check Markdown before YAML: content with headings / emphasis / links is
-    // almost certainly Markdown even if it contains "---" or "key: value" lines.
-    segments.push({ type: "markdown", content: text });
+  } else if (isXml(text)) {
+    segments.push({ type: "xml", content: text, language: "xml" });
   } else if (isYaml(text)) {
     segments.push({ type: "yaml", content: text, language: "yaml" });
   } else if (isCsv(text)) {
     segments.push({ type: "csv", content: text });
+  } else if (isMarkdown(text)) {
+    segments.push({ type: "markdown", content: text });
   } else if (isUrl(text)) {
     segments.push({ type: "url", content: text });
   } else {
@@ -110,21 +137,48 @@ function classifyText(text: string, segments: ContentSegment[]): void {
 // ─── Heuristic classifiers ────────────────────────────────────────────────────
 
 function isYaml(text: string): boolean {
-  // YAML: key: value pairs, --- separator, or list items with - prefix
-  return /^---(\s|$)|^[a-zA-Z_][a-zA-Z0-9_\- ]*:\s+\S/m.test(text);
+  // Require a document marker or a compact mapping key at the start. Long
+  // sentence-shaped keys are ambiguous and should use an explicit YAML fence.
+  const firstLine = text
+    .split("\n")
+    .find((line) => line.trim() && !/^\s*#/.test(line));
+  if (
+    !firstLine ||
+    !/^(?:---[\t ]*$|[a-zA-Z_][a-zA-Z0-9_-]*:(?:[\t ]|$)|["'][^"']+["']:(?:[\t ]|$))/.test(
+      firstLine,
+    )
+  ) {
+    return false;
+  }
+  try {
+    const value: unknown = load(text);
+    return (
+      value !== null && typeof value === "object" && !(value instanceof Date)
+    );
+  } catch {
+    return false;
+  }
 }
 
 function isCsv(text: string): boolean {
-  const lines = text.split("\n").filter((l) => l.trim());
-  if (lines.length < 2) return false;
-
-  // Check consistent comma-count across first 3 lines
-  const counts = lines.slice(0, 3).map((l) => (l.match(/,/g) ?? []).length);
-  return counts[0] > 0 && counts.every((c) => c === counts[0]);
+  const rows = parseCsv(text);
+  if (!rows || rows.length < 2 || rows[0].length < 2) return false;
+  // Inspect every row, and require compact labels in the header. Sentence
+  // punctuation and paragraph breaks are weak evidence for a data table.
+  return (
+    !/\n[\t ]*\n/.test(text) &&
+    rows.every((row) => row.length === rows[0].length) &&
+    rows[0].every(
+      (cell) =>
+        /^[\p{L}\p{N}_][\p{L}\p{N}_ /().%$-]*$/u.test(cell) &&
+        !/[.!?]$/.test(cell),
+    )
+  );
 }
 
 function isUrl(text: string): boolean {
   const trimmed = text.trim();
+  if (/\s/.test(trimmed)) return false;
   try {
     const url = new URL(trimmed);
     return url.protocol === "http:" || url.protocol === "https:";

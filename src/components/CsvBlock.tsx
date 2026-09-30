@@ -1,21 +1,18 @@
 import { useMemo } from "react";
 import type { ContentSegment, IntelliParserOptions } from "../types";
+import { parseCsv } from "../core/parseCsv";
 
 interface CsvBlockProps {
   segment: ContentSegment;
   options?: IntelliParserOptions;
 }
 
-function parseCsv(raw: string): string[][] {
-  return raw
-    .split("\n")
-    .filter((l) => l.trim())
-    .map((line) => line.split(",").map((cell) => cell.trim()));
-}
-
-export function CsvBlock({ segment, options: _options }: CsvBlockProps) {
+export function CsvBlock({ segment }: CsvBlockProps) {
   const rows = useMemo(() => parseCsv(segment.content), [segment.content]);
 
+  if (rows === null) {
+    return <pre className="intelliparser-text-block">{segment.content}</pre>;
+  }
   if (rows.length === 0) return null;
 
   const [header, ...body] = rows;

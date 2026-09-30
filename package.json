@@ -1,6 +1,6 @@
 {
   "name": "@aiapicore/react-intelliparser",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Smart React component that auto-detects and renders any content type from LLM/AI responses — Markdown, JSON, XML, code, Mermaid, math, and more.",
   "type": "module",
   "main": "./dist/index.cjs",

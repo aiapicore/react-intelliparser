@@ -5,7 +5,7 @@ interface YamlBlockProps {
   options?: IntelliParserOptions;
 }
 
-export function YamlBlock({ segment, options: _options }: YamlBlockProps) {
+export function YamlBlock({ segment }: YamlBlockProps) {
   return (
     <div className="intelliparser-yaml-block">
       <pre>

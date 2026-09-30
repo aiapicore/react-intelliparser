@@ -19,7 +19,6 @@ export function HtmlBlock({ segment, options }: HtmlBlockProps) {
   return (
     <div
       className="intelliparser-html-block"
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: safeHtml }}
     />
   );

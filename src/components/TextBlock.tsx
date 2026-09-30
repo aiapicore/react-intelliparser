@@ -5,6 +5,6 @@ interface TextBlockProps {
   options?: IntelliParserOptions;
 }
 
-export function TextBlock({ segment, options: _options }: TextBlockProps) {
+export function TextBlock({ segment }: TextBlockProps) {
   return <p className="intelliparser-text-block">{segment.content}</p>;
 }
